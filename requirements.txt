@@ -11,3 +11,4 @@ gprofiler-official
 matplotlib
 torch
 tqdm
+seaborn
