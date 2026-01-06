@@ -89,7 +89,3 @@ This project includes a GitHub Actions workflow (`.github/workflows/main.yml`) t
 6.  Uploads generated figures as artifacts.
 
 This ensures robustness across Ubuntu (CUDA-ready environment) and macOS (MPS-ready environment).
-
-## Next Steps
-
-Use the GVAE either as a powerful component (embeddings) for Atlas Deconvolve or extend it into a Mixture-of-VAEs (K decoders + aggregation + diversity/motif losses) — that change will make it fulfill the original project goal.
