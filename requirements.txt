@@ -1,0 +1,11 @@
+torch_geometric
+pandas
+numpy
+scipy
+networkx
+PyYAML
+python-box
+scikit-learn
+node2vec
+gprofiler-official
+matplotlib
