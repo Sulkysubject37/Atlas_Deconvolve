@@ -1,0 +1,23 @@
+# Configuration for Graph Attention VAE (GVAE) Experiment
+
+SYSTEM:
+  SEED: 42
+  DEVICE: "cuda"
+
+DATA:
+  PROCESSED_DIR: "data/processed"
+
+MODEL:
+  HIDDEN_DIM: 128
+  LATENT_DIM: 64
+  NUM_LAYERS: 2
+  HEADS: 4
+
+TRAIN:                                                                                                                                                                             
+  EPOCHS: 50 # Using a shorter run to generate figure data                                                                                                                            
+  LR: 0.005                                                                                                                                                                        
+  EVAL_FREQ: 10
+LOSS:
+  KL_WEIGHT: 0.001
+
+EXPERIMENT_NAME: "gvae_run"
