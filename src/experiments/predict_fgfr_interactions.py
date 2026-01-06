@@ -50,7 +50,7 @@ def main():
     # Find which FGFR proteins are in our network
     fgfr_in_network = fgfr_proteins.intersection(all_network_proteins)
     if not fgfr_in_network:
-        print("None of the FGFR pathway proteins were found in the network. Cannot proceed.")
+        print("None of the FGFR pathway proteins were found in the network. Cannot proceed (Expected for synthetic data).")
         return
     print(f"{len(fgfr_in_network)} FGFR proteins are present in our network.")
 

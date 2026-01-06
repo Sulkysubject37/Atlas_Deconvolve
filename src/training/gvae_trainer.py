@@ -30,7 +30,7 @@ class GVAETrainer:
         self.optimizer.zero_grad()
 
         x = torch.eye(self.num_nodes, device=self.device)
-        adj_train = adj_train.to(self.device)
+        adj_train = adj_train.float().to(self.device)
 
         # The model needs edge_index for message passing, derived from adj_train
         edge_index_train = adj_train.to_sparse()._indices()

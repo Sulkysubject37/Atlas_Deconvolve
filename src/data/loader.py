@@ -64,7 +64,7 @@ class GraphDataLoader:
         data = np.ones(row.shape[0])
         self.adj_train = coo_matrix((data, (row, col)), shape=(self.num_nodes, self.num_nodes)).toarray()
         self.adj_train = self.adj_train + self.adj_train.T # Make symmetric
-        self.adj_train_tensor = torch.from_numpy(self.adj_train)
+        self.adj_train_tensor = torch.from_numpy(self.adj_train).float()
 
         # Negative sampling
         print("Performing negative sampling for validation and test sets...")
