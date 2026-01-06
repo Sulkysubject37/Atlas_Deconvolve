@@ -89,3 +89,14 @@ This project includes a GitHub Actions workflow (`.github/workflows/main.yml`) t
 6.  Uploads generated figures as artifacts.
 
 This ensures robustness across Ubuntu (CUDA-ready environment) and macOS (MPS-ready environment).
+
+## Author
+
+**MD. Arshad (Sulkysubject37)**
+Jamia Millia Islamia
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Copyright (c) 2026 MD. Arshad (Sulkysubject37)
+
