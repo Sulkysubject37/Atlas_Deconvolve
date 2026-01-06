@@ -2,7 +2,7 @@
 
 SYSTEM:
   SEED: 42
-  DEVICE: "cuda"
+  DEVICE: "auto"
 
 DATA:
   PROCESSED_DIR: "data/processed"

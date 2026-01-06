@@ -1,35 +1,48 @@
-
 import torch
 import pandas as pd
 import numpy as np
 from gprofiler import GProfiler
+import argparse
+import os
 
 from src.data.loader import GraphDataLoader
 
 def main():
-    # --- 1. Fetch FGFR signaling pathway proteins ---
-    print("Fetching FGFR signaling pathway proteins from g:Profiler...")
-    gp = GProfiler(return_dataframe=True)
-    fgfr_pathway_id = "GO:0008543" # GO term for FGFR signaling pathway
-    fgfr_genes_df = gp.convert(organism='hsapiens',
-                             query=fgfr_pathway_id,
-                             target_namespace='UNIPROTSWISSPROT') # The exact target doesn't matter, we just need the 'name' column
+    parser = argparse.ArgumentParser(description="Predict novel interactions for FGFR pathway")
+    parser.add_argument('--skip_api', action='store_true', help='Skip g:Profiler API fetch and use fallback list')
+    parser.add_argument('--data_dir', type=str, default='data/processed', help='Directory containing processed graph data')
+    parser.add_argument('--embedding_path', type=str, default='experiments/gvae_run/final_embeddings.pth', help='Path to saved node embeddings')
+    parser.add_argument('--output_limit', type=int, default=10, help='Number of top novel interactions to display')
+    
+    args = parser.parse_args()
 
-    if fgfr_genes_df is None or fgfr_genes_df.empty:
-        print(f"Could not retrieve genes for pathway {fgfr_pathway_id}.")
-        # Fallback to a known list if the API fails, now using the correct _HUMAN format
-        fgfr_proteins = {"FGFR1_HUMAN", "FGFR2_HUMAN", "FGFR3_HUMAN", "FGFR4_HUMAN", "FGF1_HUMAN", "FGF2_HUMAN", "GRB2_HUMAN", "SOS1_HUMAN", "SHC1_HUMAN", "GAB1_HUMAN", "PTPN11_HUMAN", "PIK3R1_HUMAN", "PLCG1_HUMAN"}
-        print("Using a small fallback list of core FGFR proteins.")
+    # --- 1. Fetch FGFR signaling pathway proteins ---
+    fgfr_proteins = {"FGFR1_HUMAN", "FGFR2_HUMAN", "FGFR3_HUMAN", "FGFR4_HUMAN", "FGF1_HUMAN", "FGF2_HUMAN", "GRB2_HUMAN", "SOS1_HUMAN", "SHC1_HUMAN", "GAB1_HUMAN", "PTPN11_HUMAN", "PIK3R1_HUMAN", "PLCG1_HUMAN"}
+
+    if not args.skip_api:
+        print("Fetching FGFR signaling pathway proteins from g:Profiler...")
+        try:
+            gp = GProfiler(return_dataframe=True)
+            fgfr_pathway_id = "GO:0008543" # GO term for FGFR signaling pathway
+            fgfr_genes_df = gp.convert(organism='hsapiens',
+                                     query=fgfr_pathway_id,
+                                     target_namespace='UNIPROTSWISSPROT')
+
+            if fgfr_genes_df is not None and not fgfr_genes_df.empty:
+                gene_symbols = set(fgfr_genes_df['name'])
+                fgfr_proteins = {f"{symbol}_HUMAN" for symbol in gene_symbols}
+                print(f"Constructed {len(fgfr_proteins)} UniProt-style IDs for proteins in the pathway.")
+            else:
+                print("g:Profiler returned no results. Using fallback list.")
+        except Exception as e:
+            print(f"Error fetching from g:Profiler: {e}. Using fallback list.")
     else:
-        # CONSTRUCT THE ID MANUALLY: Take gene symbol from 'name' and append '_HUMAN'
-        gene_symbols = set(fgfr_genes_df['name'])
-        fgfr_proteins = {f"{symbol}_HUMAN" for symbol in gene_symbols}
-        print(f"Constructed {len(fgfr_proteins)} UniProt-style IDs for proteins in the pathway.")
+        print("Skipping API fetch. Using core FGFR proteins fallback list.")
 
 
     # --- 2. Load our network data and model ---
     print("Loading local network data and model embeddings...")
-    data_loader = GraphDataLoader('data/processed')
+    data_loader = GraphDataLoader(args.data_dir)
     node2idx = data_loader.get_node2idx_mapping()
     idx2node = {v: k for k, v in node2idx.items()}
     all_network_proteins = set(node2idx.keys())
@@ -42,7 +55,8 @@ def main():
     print(f"{len(fgfr_in_network)} FGFR proteins are present in our network.")
 
     # Load existing edges to filter them out later
-    edgelist_df = pd.read_csv('data/processed/edgelist.tsv', sep='\t')
+    edgelist_path = os.path.join(args.data_dir, 'edgelist.tsv')
+    edgelist_df = pd.read_csv(edgelist_path, sep='\t')
     # Clean the dataframe to prevent type errors
     edgelist_df.dropna(subset=['node1_name', 'node2_name'], inplace=True)
     edgelist_df['node1_name'] = edgelist_df['node1_name'].astype(str)
@@ -50,22 +64,17 @@ def main():
     existing_edges = set(map(tuple, edgelist_df.apply(lambda row: sorted((row['node1_name'], row['node2_name'])), axis=1).values))
 
     # Load embeddings
-    embeddings = torch.load('experiments/gvae_run/final_embeddings.pth')
+    if not os.path.exists(args.embedding_path):
+        print(f"Error: Embedding file not found at '{args.embedding_path}'.")
+        return
+    embeddings = torch.load(args.embedding_path)
     
     # --- 3. Use decoder to predict all interaction scores ---
     print("Decoding interaction scores from embeddings...")
-    # The GVAE decode method reconstructs the adjacency matrix from the latent embeddings.
-    # We pass the embeddings through the decoder and apply a sigmoid to get probabilities.
-    # Note: In a real GVAE, we'd instantiate the model first. Here, we approximate by
-    # assuming a simple dot-product decoder on the final embeddings for simplicity.
-    # A_hat = z * z.T
     pred_adj = torch.sigmoid(torch.matmul(embeddings, embeddings.t()))
 
     # --- 4. Identify novel high-confidence interactions ---
     print("Identifying novel high-confidence interactions...")
-    fgfr_indices = [node2idx[p] for p in fgfr_in_network]
-    network_indices = list(range(len(all_network_proteins)))
-    
     novel_interactions = []
 
     for fgfr_protein in fgfr_in_network:
@@ -75,7 +84,7 @@ def main():
         scores = pred_adj[fgfr_idx]
         
         # Find top partners
-        top_scores, top_indices = torch.topk(scores, k=50)
+        top_scores, top_indices = torch.topk(scores, k=min(50, len(all_network_proteins)))
 
         for score, partner_idx in zip(top_scores, top_indices):
             if fgfr_idx == partner_idx:
@@ -95,7 +104,7 @@ def main():
                 })
 
     # --- 5. Rank and display results ---
-    print("Top 10 Novel Predicted Interactions with the FGFR Pathway:")
+    print(f"Top {args.output_limit} Novel Predicted Interactions with the FGFR Pathway:")
     
     # Sort by confidence and get unique interactions
     seen_edges = set()
@@ -109,7 +118,7 @@ def main():
     if not unique_novel_interactions:
         print("No novel interactions with confidence > threshold found.")
     else:
-        results_df = pd.DataFrame(unique_novel_interactions).head(10)
+        results_df = pd.DataFrame(unique_novel_interactions).head(args.output_limit)
         print(results_df.to_string(index=False))
 
 

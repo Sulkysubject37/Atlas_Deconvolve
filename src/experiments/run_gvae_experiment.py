@@ -10,6 +10,7 @@ import shutil
 from src.data.loader import GraphDataLoader
 from src.models.gvae import GVAE
 from src.training.gvae_trainer import GVAETrainer
+from src.utils.device import get_device
 
 def load_config(config_path="src/experiments/configs/gvae_config.yaml"):
     with open(config_path, 'r') as f:
@@ -31,7 +32,7 @@ def main():
     torch.manual_seed(cfg.SYSTEM.SEED)
     random.seed(cfg.SYSTEM.SEED)
     np.random.seed(cfg.SYSTEM.SEED)
-    device = torch.device(cfg.SYSTEM.DEVICE if torch.cuda.is_available() else "cpu")
+    device = get_device(cfg.SYSTEM.DEVICE)
     print(f"Using device: {device}")
 
     # --- Data Loading and Splitting ---

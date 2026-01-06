@@ -12,6 +12,7 @@ from src.models.walk_generator import WalkGenerator
 from src.models.refinement_net import RefinementNetwork
 from src.models.critic import GraphCritic
 from src.training.trainer import Trainer
+from src.utils.device import get_device
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -29,7 +30,7 @@ def main():
     print(f"Loaded configuration from {args.config}")
 
     # Determine device
-    device = torch.device(cfg.SYSTEM.DEVICE if torch.cuda.is_available() else "cpu")
+    device = get_device(cfg.SYSTEM.DEVICE)
     print(f"Using device: {device}")
 
     # Load Data

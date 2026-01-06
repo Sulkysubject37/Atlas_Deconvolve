@@ -4,10 +4,11 @@ import torch
 import networkx as nx
 import numpy as np
 from tqdm import tqdm
+import argparse
 
 from src.data.loader import GraphDataLoader
 
-def generate_adamic_adar_predictions():
+def generate_adamic_adar_predictions(train_data_dir: str, full_data_dir: str, output_dir: str):
     """
     Calculates Adamic-Adar link prediction scores for the test set edges
     and saves them for later evaluation.
@@ -15,12 +16,12 @@ def generate_adamic_adar_predictions():
     # --- 1. Load graph data ---
     print("Loading graph data...")
     # Load the training graph without re-splitting it by setting val_split and test_split to 0.
-    data_loader = GraphDataLoader('data/processed_split/train', val_split=0, test_split=0)
+    data_loader = GraphDataLoader(train_data_dir, val_split=0, test_split=0)
     adj_train_small = data_loader.get_train_graph_tensor().numpy()
 
     # We need to ensure the training graph has the same number of nodes as the full graph,
     # so that test set node indices are valid.
-    with open('data/processed/stats.json', 'r') as f:
+    with open(os.path.join(full_data_dir, 'stats.json'), 'r') as f:
         full_stats = json.load(f)
     num_nodes_full = full_stats['num_nodes']
 
@@ -38,7 +39,7 @@ def generate_adamic_adar_predictions():
     # The GraphDataLoader can do this for us.
     print("Loading test edges and sampling negatives...")
     # A bit of a hack: we instantiate a loader for the full graph to use its sampling method.
-    full_loader = GraphDataLoader('data/processed')
+    full_loader = GraphDataLoader(full_data_dir)
     test_pos_edges = full_loader.get_test_edges()[0]
     test_neg_edges = full_loader.get_test_edges()[1]
 
@@ -58,7 +59,6 @@ def generate_adamic_adar_predictions():
 
     # --- 4. Save predictions and labels ---
     # Save the scores and corresponding labels to be used in the evaluation script.
-    output_dir = 'experiments/gvae_run'
     os.makedirs(output_dir, exist_ok=True)
     
     results = {
@@ -73,4 +73,14 @@ def generate_adamic_adar_predictions():
 
 
 if __name__ == '__main__':
-    generate_adamic_adar_predictions()
+    parser = argparse.ArgumentParser(description="Generate Adamic-Adar baseline predictions")
+    parser.add_argument('--train_dir', type=str, default='data/processed_split/train',
+                        help='Directory containing processed training split')
+    parser.add_argument('--full_dir', type=str, default='data/processed',
+                        help='Directory containing processed full graph data')
+    parser.add_argument('--output_dir', type=str, default='experiments/gvae_run',
+                        help='Directory to save baseline predictions')
+    
+    args = parser.parse_args()
+
+    generate_adamic_adar_predictions(args.train_dir, args.full_dir, args.output_dir)

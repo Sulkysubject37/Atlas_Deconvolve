@@ -3,6 +3,7 @@ import json
 import os
 from sklearn.cluster import KMeans
 import numpy as np
+import argparse
 
 def analyze_and_save_clusters(embedding_path: str, node2idx_path: str, output_dir: str, n_clusters: int = 10):
     """
@@ -54,9 +55,21 @@ def analyze_and_save_clusters(embedding_path: str, node2idx_path: str, output_di
     print("--- Cluster Analysis Finished ---")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Analyze node clusters using K-Means")
+    parser.add_argument('--embedding_path', type=str, default='experiments/gvae_run/final_embeddings.pth',
+                        help='Path to the saved node embeddings')
+    parser.add_argument('--node2idx_path', type=str, default='data/processed/node2idx.json',
+                        help='Path to the node to index mapping JSON file')
+    parser.add_argument('--output_dir', type=str, default='experiments/gvae_run/clusters',
+                        help='Directory to save cluster protein lists')
+    parser.add_argument('--n_clusters', type=int, default=10,
+                        help='Number of clusters for K-Means')
+    
+    args = parser.parse_args()
+
     analyze_and_save_clusters(
-        embedding_path="experiments/gvae_run/final_embeddings.pth",
-        node2idx_path="data/processed/node2idx.json",
-        output_dir="experiments/gvae_run/clusters",
-        n_clusters=10
+        embedding_path=args.embedding_path,
+        node2idx_path=args.node2idx_path,
+        output_dir=args.output_dir,
+        n_clusters=args.n_clusters
     )

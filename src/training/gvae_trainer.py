@@ -5,6 +5,7 @@ import numpy as np
 
 from src.models.gvae import GVAE
 from src.utils.metrics import calculate_roc_pr_auc
+from src.utils.device import get_device
 
 class GVAETrainer:
     def __init__(self, model: GVAE, num_nodes: int, cfg: dict):
@@ -12,7 +13,7 @@ class GVAETrainer:
         self.num_nodes = num_nodes
         self.cfg = cfg
         self.optimizer = optim.Adam(model.parameters(), lr=cfg.TRAIN.LR)
-        self.device = torch.device(cfg.SYSTEM.DEVICE if torch.cuda.is_available() else "cpu")
+        self.device = get_device(cfg.SYSTEM.DEVICE)
         self.model.to(self.device)
 
     def _calculate_loss(self, adj_recon_logits: torch.Tensor, adj_train: torch.Tensor,

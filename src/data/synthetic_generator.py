@@ -4,6 +4,7 @@ from scipy.sparse import coo_matrix, save_npz
 import json
 import os
 import random
+import argparse
 
 def generate_sbm_layers(num_nodes: int, num_layers: int, block_sizes: list[int], p_in: float, p_out: float,
                         overlap_ratio: float = 0.1) -> list[nx.Graph]:
@@ -121,15 +122,25 @@ def generate_synthetic_data(output_dir: str, num_nodes: int = 100, num_layers: i
     print("Synthetic data generation complete.")
 
 if __name__ == '__main__':
-    # Example usage
-    # This will create data/synthetic/layer_0, data/synthetic/layer_1, etc.
-    # Each with adj.npz, node2idx.json, stats.json
+    parser = argparse.ArgumentParser(description="Generate synthetic PPI network data using SBM")
+    parser.add_argument('--output_dir', type=str, default='data/synthetic',
+                        help='Directory to save synthetic data')
+    parser.add_argument('--num_nodes', type=int, default=100,
+                        help='Total number of nodes in the synthetic graph')
+    parser.add_argument('--num_layers', type=int, default=3,
+                        help='Number of latent layers to generate')
+    parser.add_argument('--p_in', type=float, default=0.7,
+                        help='Probability of edge within a block')
+    parser.add_argument('--p_out', type=float, default=0.05,
+                        help='Probability of edge between blocks')
+    
+    args = parser.parse_args()
+
     generate_synthetic_data(
-        output_dir='data/synthetic',
-        num_nodes=100,
-        num_layers=3,
-        block_sizes=[30, 30, 40], # Example: 3 blocks of 30, 30, 40 nodes
-        p_in=0.7,
-        p_out=0.05,
-        overlap_ratio=0.0 # For now, no explicit overlap mechanism in this SBM helper
+        output_dir=args.output_dir,
+        num_nodes=args.num_nodes,
+        num_layers=args.num_layers,
+        p_in=args.p_in,
+        p_out=args.p_out,
+        overlap_ratio=0.0
     )

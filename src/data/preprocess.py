@@ -4,6 +4,7 @@ import networkx as nx
 from scipy.sparse import coo_matrix, save_npz
 import json
 import os
+import argparse
 
 def load_hippie_data(file_path: str, confidence_threshold: float = 0.84) -> pd.DataFrame:
     """
@@ -159,29 +160,23 @@ def run_preprocessing(raw_data_path: str, processed_output_dir: str,
     print("Preprocessing complete.")
 
 if __name__ == '__main__':
-    # Example usage:
-    # This script would typically be run as:
-    # python src/data/preprocess.py --raw_data_path data/raw/hippie_current.tsv --output_dir data/processed
+    parser = argparse.ArgumentParser(description="Preprocess PPI network data")
+    parser.add_argument('--raw_data_path', type=str, default='data/raw/hippie_current.tsv',
+                        help='Path to the raw HIPPIE TSV file')
+    parser.add_argument('--output_dir', type=str, default='data/processed',
+                        help='Directory to save processed data')
+    parser.add_argument('--threshold', type=float, default=0.84,
+                        help='Confidence threshold for filtering interactions')
+    parser.add_argument('--min_degree', type=int, default=2,
+                        help='Minimum degree for pruning nodes')
+    
+    args = parser.parse_args()
 
-    # Placeholder for actual raw data file. User needs to provide this.
-    # For testing, you might create a dummy file or expect it to be present.
-    # raw_hippie_path = os.path.join('data', 'raw', 'hippie_current.tsv')
-    # processed_output_path = os.path.join('data', 'processed')
+    # Check if raw data exists
+    if not os.path.exists(args.raw_data_path):
+        print(f"Error: Raw data file not found at '{args.raw_data_path}'.")
+        # For CI robustness, we can create a small dummy file if it doesn't exist
+        # and we are explicitly asked to (not implemented here but good to keep in mind)
+        exit(1)
 
-    # Example: create a dummy file for demonstration if needed
-    # dummy_data = {
-    #     'Protein1_ID': ['P1', 'P2', 'P3', 'P4', 'P5'],
-    #     'Protein1_Name': ['GeneA', 'GeneB', 'GeneC', 'GeneD', 'GeneE'],
-    #     'Protein2_ID': ['P2', 'P3', 'P1', 'P5', 'P1'],
-    #     'Protein2_Name': ['GeneB', 'GeneC', 'GeneA', 'GeneE', 'GeneA'],
-    #     'Interaction_Type': ['pp', 'pp', 'pp', 'pp', 'pp'],
-    #     'Confidence': [0.9, 0.7, 0.95, 0.6, 0.85],
-    #     'Ref_ID': ['R1', 'R2', 'R3', 'R4', 'R5'],
-    #     'Experiment': ['Exp1', 'Exp2', 'Exp3', 'Exp4', 'Exp5'],
-    #     'Species': ['Human', 'Human', 'Human', 'Human', 'Human'],
-    # }
-    # pd.DataFrame(dummy_data).to_csv(raw_hippie_path, sep='\t', index=False, header=False)
-
-
-    print("Please ensure your raw HIPPIE data (e.g., 'hippie_current.tsv') is placed in the 'data/raw/' directory.")
-    print("You can then run `python src/data/preprocess.py` after adapting the `run_preprocessing` call.")
+    run_preprocessing(args.raw_data_path, args.output_dir, args.threshold, args.min_degree)

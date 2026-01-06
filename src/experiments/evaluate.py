@@ -12,6 +12,7 @@ from src.models.node_features import NodeFeatureGenerator
 from src.models.walk_generator import WalkGenerator
 from src.models.refinement_net import RefinementNetwork
 from src.models.critic import GraphCritic # Critic might not be directly used for generation, but for consistency
+from src.utils.device import get_device
 
 from src.utils.metrics import (
     calculate_roc_pr_auc,
@@ -130,7 +131,7 @@ def main():
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    device = torch.device(cfg.SYSTEM.DEVICE if torch.cuda.is_available() else "cpu")
+    device = get_device(cfg.SYSTEM.DEVICE)
 
     # Load Real Graph Data (or processed data from synthetic run)
     data_loader = GraphDataLoader(cfg.DATA.PROCESSED_DIR)

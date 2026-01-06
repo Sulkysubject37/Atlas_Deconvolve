@@ -9,3 +9,5 @@ scikit-learn
 node2vec
 gprofiler-official
 matplotlib
+torch
+tqdm
