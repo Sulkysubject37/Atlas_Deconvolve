@@ -27,7 +27,7 @@ def create_tsne_visualization():
 
     # --- 3. Perform t-SNE Dimensionality Reduction ---
     print("Performing t-SNE dimensionality reduction...")
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_iter=1000)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=1000)
     embeddings_2d = tsne.fit_transform(embeddings)
 
     # --- 4. Create DataFrame for Plotting ---
