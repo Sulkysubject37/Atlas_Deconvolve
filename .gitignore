@@ -34,6 +34,7 @@ Thumbs.db
 /data/
 # Assuming root experiments directory contains run outputs (code is in src/experiments)
 /experiments/
+/figures/
 *.npz
 *.pt
 *.pth
