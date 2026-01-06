@@ -81,34 +81,43 @@ def generate_synthetic_data(output_dir: str, num_nodes: int = 100, num_layers: i
     latent_graphs = generate_sbm_layers(num_nodes, num_layers, block_sizes, p_in, p_out, overlap_ratio)
 
     # Save each latent layer
+    all_rows = []
+    all_cols = []
+    
+    # Common node2idx for all layers (since they share nodes)
+    nodes = sorted(list(range(num_nodes)))
+    node2idx = {node: idx for idx, node in enumerate(nodes)}
+
     for i, G_layer in enumerate(latent_graphs):
         layer_output_dir = os.path.join(output_dir, f'layer_{i}')
         os.makedirs(layer_output_dir, exist_ok=True)
 
-        nodes = sorted(list(G_layer.nodes()))
-        node2idx = {node: idx for idx, node in enumerate(nodes)}
-
-        # Adjacency matrix
+        # Adjacency matrix for layer
         row = []
         col = []
         for u, v in G_layer.edges():
-            row.append(node2idx[u])
-            col.append(node2idx[v])
-            row.append(node2idx[v]) # Symmetric
-            col.append(node2idx[u])
+            u_idx, v_idx = node2idx[u], node2idx[v]
+            row.append(u_idx)
+            col.append(v_idx)
+            row.append(v_idx) # Symmetric
+            col.append(u_idx)
+            
+            # Collect for aggregated graph
+            all_rows.append(u_idx)
+            all_cols.append(v_idx)
+            all_rows.append(v_idx)
+            all_cols.append(u_idx)
         
         if len(row) > 0:
             data = np.ones(len(row))
             adj_matrix = coo_matrix((data, (row, col)), shape=(num_nodes, num_nodes), dtype=np.float32)
             save_npz(os.path.join(layer_output_dir, 'adj.npz'), adj_matrix)
         else:
-            # Handle empty graph case if no edges generated
             save_npz(os.path.join(layer_output_dir, 'adj.npz'), coo_matrix((num_nodes, num_nodes), dtype=np.float32))
 
         with open(os.path.join(layer_output_dir, 'node2idx.json'), 'w') as f:
             json.dump(node2idx, f, indent=4)
         
-        # Basic stats for the layer
         stats = {
             'num_nodes': G_layer.number_of_nodes(),
             'num_edges': G_layer.number_of_edges(),
@@ -118,6 +127,33 @@ def generate_synthetic_data(output_dir: str, num_nodes: int = 100, num_layers: i
             json.dump(stats, f, indent=4)
 
         print(f"Saved synthetic layer {i} to {layer_output_dir}")
+
+    # --- Save Aggregated Graph to Root ---
+    # This represents the observed "interactome" which is a superposition of functional layers
+    if len(all_rows) > 0:
+        # Use set to remove duplicate edges from overlap
+        unique_edges = set(zip(all_rows, all_cols))
+        agg_rows = [u for u, v in unique_edges]
+        agg_cols = [v for u, v in unique_edges]
+        agg_data = np.ones(len(agg_rows))
+        
+        agg_adj = coo_matrix((agg_data, (agg_rows, agg_cols)), shape=(num_nodes, num_nodes), dtype=np.float32)
+        save_npz(os.path.join(output_dir, 'adj.npz'), agg_adj)
+    else:
+        save_npz(os.path.join(output_dir, 'adj.npz'), coo_matrix((num_nodes, num_nodes), dtype=np.float32))
+
+    with open(os.path.join(output_dir, 'node2idx.json'), 'w') as f:
+        json.dump(node2idx, f, indent=4)
+
+    agg_stats = {
+        'num_nodes': num_nodes,
+        'num_edges': len(unique_edges) // 2, # Undirected edges count
+        'avg_degree': len(unique_edges) / num_nodes if num_nodes > 0 else 0
+    }
+    with open(os.path.join(output_dir, 'stats.json'), 'w') as f:
+        json.dump(agg_stats, f, indent=4)
+    
+    print(f"Saved aggregated graph to {output_dir}")
 
     print("Synthetic data generation complete.")
 
