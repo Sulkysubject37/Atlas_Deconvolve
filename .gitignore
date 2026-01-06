@@ -31,9 +31,9 @@ Thumbs.db
 
 # Project Specific - Data and Outputs
 # Assuming data directory contains large/generated datasets
-data/
+/data/
 # Assuming root experiments directory contains run outputs (code is in src/experiments)
-experiments/
+/experiments/
 *.npz
 *.pt
 *.pth
